@@ -19,7 +19,7 @@ def load_data_from_csv():
 # Standardize text data
 def standardize_data(row):
     # remove all special charactor
-    row = re.sub(r'[^a-zA-Z0-9 ]',r'', row)
+    row = re.sub(r"[-()#/@;:<>{}`+=~|.!?,]", "", row)
     row = row.strip()
     return row
 

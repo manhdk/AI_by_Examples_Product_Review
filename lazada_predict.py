@@ -1,9 +1,9 @@
-import urllib.request
 from bs4 import BeautifulSoup
 import re
 import csv
 import os
 import json
+import string
 import requests
 from requests.exceptions import RequestException
 import pandas as pd
@@ -11,7 +11,7 @@ import joblib
 from underthesea import word_tokenize
 import numpy as np
 from constants import REQUEST_HEADERS
-from utils import StringUtils
+
 
 def get_comment_from_url(url):
     try:
@@ -22,13 +22,13 @@ def get_comment_from_url(url):
                 return None
             source_content = response.content
             soup_content = BeautifulSoup(source_content, "html.parser")
-            script = soup_content.find_all("script", attrs={"type": "application/ld+json"})[0]
-            script = str(script)
-            script = script.replace("</script>","").replace("<script type=\"application/ld+json\">","")
+            content = soup_content.find_all("script", attrs={"type": "application/ld+json"})[0]
+            content = str(content)
+            content = content.replace("</script>","").replace("<script type=\"application/ld+json\">","")
 
             csvdata = []
 
-            for element in json.loads(script)["review"]:
+            for element in json.loads(content)["review"]:
                 if "reviewBody" in element:
                     csvdata.append([element["reviewBody"]])
             if csvdata:
@@ -40,7 +40,7 @@ def get_comment_from_url(url):
 
 def standardize_data(row):
     # remove all special charactor
-    row = re.sub(r'[^a-zA-Z0-9 ]',r'', row)
+    row = re.sub(r"[-()#/@;:<>{}`+=~|.!?,]", "", row)
     row = row.strip()
     return row
 
@@ -62,29 +62,26 @@ def analyze(result):
 # 1. Load URL and print comments
 url = input('Enter your url:')
 if not url:
-    url = "https://www.lazada.vn/products/quan-boi-nam-hot-trend-i244541570-s313421582.html?spm=a2o4n.searchlist.list.11.515c365foL7kyZ&search=1"
+    url = "https://www.lazada.vn/products/quan-dui-the-thao-nam-nhieu-mau-du-size-vai-xi-gian-nhe-min-mat-i246614289-s1287480682.html"
 data = get_comment_from_url(url)
+print('data crawl:', data)
 
 # 2. Standardize data
 data_frame = pd.DataFrame(data)
 data_frame[0] = data_frame[0].apply(standardize_data)
+print('Standardize data:', data_frame)
 
 # 3. Tokenizer
 data_frame[0] = data_frame[0].apply(tokenizer)
+print('tokenizer:', data_frame)
 
 # 4. Embedding
 X_val = data_frame[0]
 emb = joblib.load('tfidf.pkl')
 X_val = emb.transform(X_val)
-print(X_val)
+print('Embedding:', X_val)
 
 # 5. Predict
 model = joblib.load('saved_model.pkl')
 result = model.predict(X_val)
-print('11111', result)
-print(analyze(result))
-print("Done")
-
-
-
-
+print('Predict:', analyze(result))

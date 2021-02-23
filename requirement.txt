@@ -2,3 +2,4 @@ pandas
 nltk
 underthesea
 beautifulsoup4
+requests
